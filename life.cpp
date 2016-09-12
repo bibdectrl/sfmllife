@@ -12,20 +12,29 @@ constexpr float GRIDSIZE{10.0};
 class LifeWorld {
 	public:
 		LifeWorld();
-		LifeWorld(const LifeWorld& lw);
 		int mooreNeighboursSum(int x, int y);
 		void update();
 		void draw();
 		void draw(sf::RenderWindow& window);
+    void reset();
 	private:
-        	int grid[WIDTH][HEIGHT];
+    int grid[WIDTH][HEIGHT];
 		int oldGrid[WIDTH][HEIGHT];
 };
 
 LifeWorld::LifeWorld(){
  for (int i = 0; i < WIDTH; i++){
    for (int j = 0; j < HEIGHT; j++){
-     grid[i][j] = (rand() % 10 < 3) ? 1 : 0;
+     grid[i][j] = (rand() % 10 < 2) ? 1 : 0;
+     oldGrid[i][j] = grid[i][j];
+   }
+ }
+}
+
+void LifeWorld::reset(){
+ for (int i = 0; i < WIDTH; i++){
+   for (int j = 0; j < HEIGHT; j++){
+     grid[i][j] = (rand() % 10 < 2) ? 1 : 0;
      oldGrid[i][j] = grid[i][j];
    }
  }
@@ -37,14 +46,14 @@ int LifeWorld::mooreNeighboursSum(int x, int y){
   int xm = (x == 0) ? WIDTH - 1 : x - 1;
   int yp = (y == HEIGHT - 1) ? 0 : y + 1;
   int ym = (y == 0) ? HEIGHT - 1 : y - 1;
-  return grid[xp][y] + 
-         grid[xm][y] +  
-	 grid[x][yp] +  
-	 grid[x][ym] +  
-	 grid[xp][yp] + 
-	 grid[xp][ym] + 
-	 grid[xm][yp] + 
-	 grid[xm][ym]; 
+  return oldGrid[xp][y] + 
+         oldGrid[xm][y] +  
+	       oldGrid[x][yp] +  
+	       oldGrid[x][ym] +  
+	       oldGrid[xp][yp] + 
+	       oldGrid[xp][ym] + 
+	       oldGrid[xm][yp] + 
+	       oldGrid[xm][ym]; 
 }
 
 void LifeWorld::update(){
@@ -53,17 +62,16 @@ void LifeWorld::update(){
       int n = mooreNeighboursSum(i, j);
       if (oldGrid[i][j] == DEAD){
         if (n == 3){
-          grid[i][j] == 1;
-        } else {
-          grid[i][j] == 0;
-	}
-      }
-      else {
-        if (n == 2 || n == 3){
-          grid[i][j] == 1;
-	} else {
-          grid[i][j] == 0;   
-	}
+          grid[i][j] = 1;
+          } else {
+          grid[i][j] = 0;
+	      }
+      } else {
+        if (n < 2 || n > 3){
+          grid[i][j] = 0;
+	      } else {
+          grid[i][j] = 1;   
+	      }
       }	      
      }
   }
@@ -81,13 +89,14 @@ void LifeWorld::draw(sf::RenderWindow &window){
       if (grid[i][j] == ALIVE){	    
         sf::RectangleShape l_rect;
         l_rect.setFillColor(sf::Color::Red);
-	l_rect.setSize(sf::Vector2f{GRIDSIZE, GRIDSIZE});
-	l_rect.setPosition(i*GRIDSIZE, j*GRIDSIZE);
-	window.draw(l_rect);
+	      l_rect.setSize(sf::Vector2f{GRIDSIZE, GRIDSIZE});
+	      l_rect.setPosition(static_cast<int>(i*GRIDSIZE), static_cast<int>(j*GRIDSIZE));
+	      window.draw(l_rect);
+      }
     }
   }
- }
 }
+
 class Game {
   public:
     Game(sf::RenderWindow &window);
@@ -106,21 +115,26 @@ void Game::update(){
 }
 
 void Game::draw(){
+  m_renderWindow.clear();
   m_lifeWorld.draw(m_renderWindow);
+  m_renderWindow.display();
 }
 
 void Game::run(){
+  m_renderWindow.setFramerateLimit(20);
   while (m_renderWindow.isOpen()){
        sf::Event event;
        while (m_renderWindow.pollEvent(event)){
-          if (event.type == sf::Event::Closed){
+          if (event.type == sf::Event::Closed || event.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)){
             m_renderWindow.close();
             break;
+          } else if (event.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::R)){
+              m_lifeWorld.reset();
           }
-      }
-      m_lifeWorld.update();
-      m_lifeWorld.draw(m_renderWindow);
- }
+       }
+       update();
+       draw();
+  }
 }
 
 
